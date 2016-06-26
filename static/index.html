@@ -70,12 +70,14 @@
       </div>
 
       <div class="container" id="main">
+        <!-- ================================== CQL TAB here ==================================  -->
         <div id="tab-cql">
           <h3>Let's Execute Some CQL</h3>
           <div class="form-group">
             <label for="comment">CQL Query:</label>
             <textarea class="form-control" rows="4" id="textarea-cql">SELECT * FROM testme.users;</textarea>
           </div>
+
           <div class="btn-toolbar">
             <button type="button" class="btn btn-success" id="btn-cql">
               <span class="glyphicon glyphicon-play" aria-hidden="true"></span> Run Query
@@ -88,23 +90,23 @@
             <span id="cql-error"><span data-bind="text: VIEW.cqlErrorMsg"></span></span>
           </div>
 
-          <div class="results" id="cql-results" data-bind="visible: VIEW.items().length > 0">
+          <div class="results" id="cql-results" data-bind="visible: VIEW.cqlItems().length > 0">
             <h4>Results</h4>
             <table class="table table-striped">
               <thead>
-                <tr data-bind="foreach: {data: VIEW.columnNames, as: 'cName'}">
+                <tr data-bind="foreach: {data: VIEW.cqlColumnNames, as: 'cName'}">
                   <th> <span data-bind="text: cName"></span> </th>
                 </tr>
               </thead>
-              <tbody data-bind="foreach: VIEW.items">
-                <tr data-bind="foreach: $parent.columnNames">
+              <tbody data-bind="foreach: VIEW.cqlItems">
+                <tr data-bind="foreach: $parent.cqlColumnNames">
                     <td data-bind="text: $parent[$data]"></td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
-
+        <!-- ================================== TABLES TAB here ==================================  -->
         <div id="tab-tables">
           <h3>Let's Work With Tables</h3>
           <div class="checkbox">
@@ -116,9 +118,7 @@
                 </div>
               </div>
             </div>
-
           </div>
-
           <div class="btn-toolbar">
             <button type="button" class="btn btn-success">
               <span class="glyphicon glyphicon-list" aria-hidden="true"></span> Select *
@@ -146,23 +146,11 @@
                   <td>Carter</td>
                   <td>johncarter@mail.com</td>
                 </tr>
-                <tr>
-                  <td>2</td>
-                  <td>Peter</td>
-                  <td>Parker</td>
-                  <td>peterparker@mail.com</td>
-                </tr>
-                <tr>
-                  <td>3</td>
-                  <td>John</td>
-                  <td>Rambo</td>
-                  <td>johnrambo@mail.com</td>
-                </tr>
               </tbody>
             </table>
           </div>
         </div>
-
+        <!-- ================================== META TAB here ==================================  -->
         <div id="tab-meta">
           <h3>Metadata</h3>
           <p>What the db looks like</p>
@@ -188,7 +176,7 @@
           </div>
 
         </div>
-
+        <!-- ================================== OTHER TAB here ==================================  -->
         <div id="tab-other">
           <h3>Other..</h3>
           <p>Some other stuff I haven't thought of yet..</p>
@@ -219,60 +207,28 @@
         initTabMenu();
 
         // Actual app code
+        initCqlTab();
         loadMeta();
-
-        $('#btn-cql').click(function() {
-          VIEW.cqlError(false);
-
-          var query = $('#textarea-cql').val();
-          // TODO validate it
-
-          console.log(query);
-
-          $.getJSON( "/api/cql?query=" + query, function( data ) {
-            console.log(data);
-
-            // TODO validate
-            if (data.status != null) {
-              console.log("CQL failed");
-              VIEW.cqlError(true);
-              VIEW.cqlErrorMsg(data.message);
-              console.log(data.message);
-            } else {
-
-              VIEW.items.removeAll();
-
-              var arrayLength = data.length;
-              for (var i = 0; i < arrayLength; i++) {
-                var row = data[i];
-                VIEW.items.push(row);
-              }
-
-            }
-
-          });
-        });
       });
 
       // globals for knockout js
       var VIEW = {
           META: ko.observableArray(),
-          items: ko.observableArray(),
+          cqlItems: ko.observableArray(),
           cqlError: ko.observable(false),
           cqlErrorMsg: ko.observable('some error')
       }
 
-      VIEW.columnNames = ko.computed(function () {
+      VIEW.cqlColumnNames = ko.computed(function () {
               var self = VIEW;
-              if (self.items().length === 0)
+              if (self.cqlItems().length === 0)
                   return [];
               var props = [];
-              var obj = self.items()[0];
+              var obj = self.cqlItems()[0];
               for (var name in obj)
                   props.push(name);
               return props;
-          })
-
+          });
 
       ko.applyBindings(VIEW);
 
@@ -296,6 +252,42 @@
           $(thisref).show();
         });
       }
+
+      function initCqlTab(){
+        $('#btn-cql').click(function() {
+          VIEW.cqlError(false);
+
+          var query = $('#textarea-cql').val();
+          // TODO validate it
+
+          console.log(query);
+
+          $.getJSON( "/api/cql?query=" + query, function( data ) {
+            console.log(data);
+
+            // TODO validate
+            if (data.status != null) {
+              console.log("CQL failed");
+              VIEW.cqlError(true);
+              VIEW.cqlErrorMsg(data.message);
+              console.log(data.message);
+            } else {
+
+              VIEW.cqlItems.removeAll();
+
+              var arrayLength = data.length;
+              for (var i = 0; i < arrayLength; i++) {
+                var row = data[i];
+                VIEW.cqlItems.push(row);
+              }
+
+            }
+
+          });
+        });
+
+      }
+
 
       function loadMeta() {
           $.getJSON( "/api/meta", function( data ) {
