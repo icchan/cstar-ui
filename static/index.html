@@ -47,7 +47,9 @@
         li.meta-columns span.cql-kind {
           width: 10px;
         }
-
+        .alert {
+            margin-top: 10px;
+        }
       </style>
     </head>
     <body>
@@ -72,48 +74,31 @@
           <h3>Let's Execute Some CQL</h3>
           <div class="form-group">
             <label for="comment">CQL Query:</label>
-            <textarea class="form-control" rows="5" id="comment">SELECT * FROM testme.users;</textarea>
+            <textarea class="form-control" rows="4" id="textarea-cql">SELECT * FROM testme.users;</textarea>
           </div>
           <div class="btn-toolbar">
-            <button type="button" class="btn btn-success">
+            <button type="button" class="btn btn-success" id="btn-cql">
               <span class="glyphicon glyphicon-play" aria-hidden="true"></span> Run Query
             </button>
           </div>
-          <div class="alert alert-danger" role="alert">
+
+          <div class="alert alert-danger" role="alert" data-bind="visible: VIEW.cqlError">
             <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
             <span class="sr-only">Error:</span>
-            <span id="cql-error">Enter a valid email address</span>
+            <span id="cql-error"><span data-bind="text: VIEW.cqlErrorMsg"></span></span>
           </div>
 
-          <div class="results" id="cql-results">
+          <div class="results" id="cql-results" data-bind="visible: VIEW.items().length > 0">
             <h4>Results</h4>
             <table class="table table-striped">
               <thead>
-                <tr>
-                  <th>Row</th>
-                  <th>First Name</th>
-                  <th>Last Name</th>
-                  <th>Email</th>
+                <tr data-bind="foreach: {data: VIEW.columnNames, as: 'cName'}">
+                  <th> <span data-bind="text: cName"></span> </th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td>1</td>
-                  <td>John</td>
-                  <td>Carter</td>
-                  <td>johncarter@mail.com</td>
-                </tr>
-                <tr>
-                  <td>2</td>
-                  <td>Peter</td>
-                  <td>Parker</td>
-                  <td>peterparker@mail.com</td>
-                </tr>
-                <tr>
-                  <td>3</td>
-                  <td>John</td>
-                  <td>Rambo</td>
-                  <td>johnrambo@mail.com</td>
+              <tbody data-bind="foreach: VIEW.items">
+                <tr data-bind="foreach: $parent.columnNames">
+                    <td data-bind="text: $parent[$data]"></td>
                 </tr>
               </tbody>
             </table>
@@ -123,10 +108,15 @@
         <div id="tab-tables">
           <h3>Let's Work With Tables</h3>
           <div class="checkbox">
-            <h4>Tables</h4>
-            <label><input type="checkbox" value="">Option 1</label>
-            <label><input type="checkbox" value="">Option 2</label>
-            <label><input type="checkbox" value="">Option 3</label>
+            <div id="meta-display">
+              <div data-bind="foreach: {data: VIEW.META, as: 'keyspace'}">
+                <h4>Keyspace: <span data-bind="text: keyspace.name"></span></h4>
+                <div data-bind="foreach: { data: keyspace.tables, as: 'table' }">
+                  <label><input type="checkbox" data-bind="value: keyspace.name + '.' + table.name" ><span data-bind="text: table.name"></span></label>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <div class="btn-toolbar">
@@ -178,10 +168,10 @@
           <p>What the db looks like</p>
 
           <div id="meta-display">
-            <div class="panel panel-success keyspace-meta" data-bind="foreach: {data: META, as: 'meta'}">
-              <div class="panel-heading"><span data-bind="text: meta.name"> </span> <span>[+]</span></div>
+            <div class="panel panel-warning keyspace-meta" data-bind="foreach: {data: VIEW.META, as: 'keyspace'}">
+              <div class="panel-heading"><span data-bind="text: keyspace.name"> </span> <span class="tbl-collapse">[-]</span></div>
               <div class="table-meta panel-body">
-                <ul class="list-group" data-bind="foreach: { data: meta.tables, as: 'table' }">
+                <ul class="list-group" data-bind="foreach: { data: keyspace.tables, as: 'table' }">
                   <li class="list-group-item">
                     <h4><span data-bind="text: table.name"></span> <small>[-]</small></h4>
                     <ul class="list-group" data-bind="foreach: { data: table.columns, as: 'column' }">
@@ -193,7 +183,6 @@
                     </ul>
                   </li>
                 </ul>
-
               </div>
             </div>
           </div>
@@ -217,8 +206,81 @@
 
     <script>
       $(function() {
-        $("#main").children().hide();
 
+        $('.panel-heading').click(function() {
+          $(this).next('.panel-body').toggle();
+          console.log($(this));
+        });
+
+//        $(".alert").hide();
+//        $(".results").hide();
+
+        // set up top menu and tabs
+        initTabMenu();
+
+        // Actual app code
+        loadMeta();
+
+        $('#btn-cql').click(function() {
+          VIEW.cqlError(false);
+
+          var query = $('#textarea-cql').val();
+          // TODO validate it
+
+          console.log(query);
+
+          $.getJSON( "/api/cql?query=" + query, function( data ) {
+            console.log(data);
+
+            // TODO validate
+            if (data.status != null) {
+              console.log("CQL failed");
+              VIEW.cqlError(true);
+              VIEW.cqlErrorMsg(data.message);
+              console.log(data.message);
+            } else {
+
+              VIEW.items.removeAll();
+
+              var arrayLength = data.length;
+              for (var i = 0; i < arrayLength; i++) {
+                var row = data[i];
+                VIEW.items.push(row);
+              }
+
+            }
+
+          });
+        });
+      });
+
+      // globals for knockout js
+      var VIEW = {
+          META: ko.observableArray(),
+          items: ko.observableArray(),
+          cqlError: ko.observable(false),
+          cqlErrorMsg: ko.observable('some error')
+      }
+
+      VIEW.columnNames = ko.computed(function () {
+              var self = VIEW;
+              if (self.items().length === 0)
+                  return [];
+              var props = [];
+              var obj = self.items()[0];
+              for (var name in obj)
+                  props.push(name);
+              return props;
+          })
+
+
+      ko.applyBindings(VIEW);
+
+
+      // functions
+      function initTabMenu() {
+        // set up the tabs
+        $("#main").children().hide();
         var type = window.location.hash.substr(1);
 
         if (type == "") {
@@ -226,28 +288,15 @@
         }
         $("#" + type).show();
 
-        $(".alert").hide();
-        $(".results").hide();
-
+        // set up the menu
         $("#topmenu > li > a").click(function(){
           var thisref = $(this).attr('href');
           console.log(thisref);
           $("#main").children().hide();
           $(thisref).show();
         });
+      }
 
-        // Actual app code
-        loadMeta();
-
-      });
-
-      // globals for knockout js
-      var META = ko.observableArray();
-      ko.applyBindings(META);
-
-
-
-      // functions
       function loadMeta() {
           $.getJSON( "/api/meta", function( data ) {
             console.log(data);
@@ -259,7 +308,7 @@
           //console.log(metaResult);
 
           // TODO ensure the input is valid before continuing
-          META.removeAll();
+          VIEW.META.removeAll();
 
           // extract keyspaces
           for (var ksName in metaResult) {
@@ -316,7 +365,7 @@
                 "tables" : tblList
               };
 
-              META.push(keyspace);
+              VIEW.META.push(keyspace);
             }
           }
 
