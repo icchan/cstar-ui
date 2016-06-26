@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link rel="icon" href="favicon.ico">
+
+  <title>Cassandra Quick Access</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/flatly/bootstrap.min.css" rel="stylesheet">
+
+    <!--
+    // Select one of these: 
+  <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/flatly/bootstrap.min.css" rel="stylesheet">
+  <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/slate/bootstrap.min.css" rel="stylesheet">
+  <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/superhero/bootstrap.min.css" rel="stylesheet">
+  <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/darkly/bootstrap.min.css" rel="stylesheet">
+  <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/lumen/bootstrap.min.css" rel="stylesheet">
+
+-->
+
+<!-- Font Awesome! -->
+<link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+
+<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+      <![endif]-->
+      <style>
+        body {
+          padding-top: 60px;
+        }
+        li.meta-columns span {
+          display: inline-block;
+        }
+        li.meta-columns span.cql-col {
+          width: 150px;
+        }
+        li.meta-columns span.cql-type {
+          width: 50px;
+        }
+        li.meta-columns span.cql-kind {
+          width: 10px;
+        }
+
+      </style>
+    </head>
+    <body>
+      <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+        <div class="container">
+          <div class="navbar-header">
+            <a class="navbar-brand" href="#">CStar UI</a>
+          </div>
+          <div class="collapse navbar-collapse">
+            <ul class="nav navbar-nav" id="topmenu">
+              <li><a href="#tab-cql">CQL</a></li>
+              <li><a href="#tab-tables">Tables</a></li>
+              <li><a href="#tab-meta">Metadata</a></li>
+              <li><a href="#tab-other">Other</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+
+      <div class="container" id="main">
+        <div id="tab-cql">
+          <h3>Let's Execute Some CQL</h3>
+          <div class="form-group">
+            <label for="comment">CQL Query:</label>
+            <textarea class="form-control" rows="5" id="comment">SELECT * FROM testme.users;</textarea>
+          </div>
+          <div class="btn-toolbar">
+            <button type="button" class="btn btn-success">
+              <span class="glyphicon glyphicon-play" aria-hidden="true"></span> Run Query
+            </button>
+          </div>
+          <div class="alert alert-danger" role="alert">
+            <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+            <span class="sr-only">Error:</span>
+            <span id="cql-error">Enter a valid email address</span>
+          </div>
+
+          <div class="results" id="cql-results">
+            <h4>Results</h4>
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Row</th>
+                  <th>First Name</th>
+                  <th>Last Name</th>
+                  <th>Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td>John</td>
+                  <td>Carter</td>
+                  <td>johncarter@mail.com</td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td>Peter</td>
+                  <td>Parker</td>
+                  <td>peterparker@mail.com</td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td>John</td>
+                  <td>Rambo</td>
+                  <td>johnrambo@mail.com</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="tab-tables">
+          <h3>Let's Work With Tables</h3>
+          <div class="checkbox">
+            <h4>Tables</h4>
+            <label><input type="checkbox" value="">Option 1</label>
+            <label><input type="checkbox" value="">Option 2</label>
+            <label><input type="checkbox" value="">Option 3</label>
+          </div>
+
+          <div class="btn-toolbar">
+            <button type="button" class="btn btn-success">
+              <span class="glyphicon glyphicon-list" aria-hidden="true"></span> Select *
+            </button>
+            <button type="button" class="btn btn-danger">
+              <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Truncate
+            </button>
+          </div>
+
+          <div class="results" id="cql-results">
+            <h4>Results</h4>
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Row</th>
+                  <th>First Name</th>
+                  <th>Last Name</th>
+                  <th>Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td>John</td>
+                  <td>Carter</td>
+                  <td>johncarter@mail.com</td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td>Peter</td>
+                  <td>Parker</td>
+                  <td>peterparker@mail.com</td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td>John</td>
+                  <td>Rambo</td>
+                  <td>johnrambo@mail.com</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="tab-meta">
+          <h3>Metadata</h3>
+          <p>What the db looks like</p>
+
+          <div id="meta-display">
+            <div class="panel panel-success keyspace-meta" data-bind="foreach: {data: META, as: 'meta'}">
+              <div class="panel-heading"><span data-bind="text: meta.name"> </span> <span>[+]</span></div>
+              <div class="table-meta panel-body">
+                <ul class="list-group" data-bind="foreach: { data: meta.tables, as: 'table' }">
+                  <li class="list-group-item">
+                    <h4><span data-bind="text: table.name"></span> <small>[-]</small></h4>
+                    <ul class="list-group" data-bind="foreach: { data: table.columns, as: 'column' }">
+                      <li class="list-group-item meta-columns">
+                        <b><span class="cql-col"  data-bind="text: column.name"></span></b>
+                        <span class="cql-type" data-bind="text: column.type"></span> 
+                        <span class="cql-kind"  data-bind="text: column.kind"></span>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div id="tab-other">
+          <h3>Other..</h3>
+          <p>Some other stuff I haven't thought of yet..</p>
+        </div>
+
+      </div><!-- /.container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.0/knockout-min.js"></script>
+
+    <script>
+      $(function() {
+        $("#main").children().hide();
+
+        var type = window.location.hash.substr(1);
+
+        if (type == "") {
+          type = "tab-cql";
+        }
+        $("#" + type).show();
+
+        $(".alert").hide();
+        $(".results").hide();
+
+        $("#topmenu > li > a").click(function(){
+          var thisref = $(this).attr('href');
+          console.log(thisref);
+          $("#main").children().hide();
+          $(thisref).show();
+        });
+
+        // Actual app code
+        loadMeta();
+
+      });
+
+      // globals for knockout js
+      var META = ko.observableArray();
+      ko.applyBindings(META);
+
+
+
+      // functions
+      function loadMeta() {
+          $.getJSON( "/api/meta", function( data ) {
+            console.log(data);
+            displayMeta(data);
+          });
+      }
+
+      function displayMeta(metaResult) {
+          //console.log(metaResult);
+
+          // TODO ensure the input is valid before continuing
+          META.removeAll();
+
+          // extract keyspaces
+          for (var ksName in metaResult) {
+            if (metaResult.hasOwnProperty(ksName)) {
+
+              var tblRes = metaResult[ksName];
+              var tblList = [];
+
+              // extract tables
+              for (var tblName in tblRes) {
+                var colRes = tblRes[tblName];
+                var colList = [];
+
+                // extract column data
+                for (var colName in colRes) {
+                  var colMeta = colRes[colName];
+
+                  var dKind = "";
+                  if (colMeta.kind =="partition_key" ) {
+                    dKind = "K";
+                  } else if (colMeta.kind =="clustering" ) {
+                    dKind = "C";
+                  } else if (colMeta.kind =="static" ) {
+                    dKind = "S";
+                  }
+
+                  var column = {
+                    "name": colName,
+                    "type": colMeta.type,
+                    "kind": dKind
+                  }
+                  colList.push(column)
+                }
+
+                colList.sort(function(a, b){
+                  if (a.kind == "") {
+                    return 1;
+                  } else {
+                    // TODO return a.kind.localeCompare(b.kind);
+                    return -1;               
+                  }
+                });
+
+                var table = {
+                  "name": tblName,
+                  "columns": colList
+                }
+
+                tblList.push(table);
+              }
+
+              var keyspace = {
+                "name" : ksName,
+                "tables" : tblList
+              };
+
+              META.push(keyspace);
+            }
+          }
+
+        }
+
+    </script>
+
+  </body>
+  </html>
