@@ -25,6 +25,7 @@
         body {
           padding-top: 60px;
         }
+        /* Meta display */
         li.meta-columns span {
           display: inline-block;
         }
@@ -32,7 +33,7 @@
           width: 150px;
         }
         li.meta-columns span.cql-type {
-          width: 50px;
+          width: 120px;
         }
         li.meta-columns span.cql-kind {
           width: 10px;
@@ -42,8 +43,14 @@
         .alert {
             margin-top: 10px;
         }
+
+        /* query results (cql and table) */
         div.results {
             overflow: auto;
+        }
+        div.results tr > td {
+          padding: 2px 8px;
+          font-size: 90%;
         }
 
         /* CQL Tab's Schema Side Menu*/
@@ -52,7 +59,7 @@
         }
         .panel-title > a {
           font-family: courier;
-          color: #eee;
+          color: #ccc;
           text-decoration: none;
           font-size: 80%;
         }
@@ -101,7 +108,7 @@
     <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="#">CStar UI</a>
+          <a class="navbar-brand" href="https://github.com/icchan/cstar-ui" target="_blank">CStar UI</a>
         </div>
         <div class="collapse navbar-collapse">
           <ul class="nav navbar-nav" id="topmenu">
@@ -117,7 +124,7 @@
     <div class="container" id="main">
       <!-- ================================== CQL TAB here ==================================  -->
         <div id="tab-cql">
-          <div class="col-md-9">
+          <div class="col-md-8">
             <h3>Let's Execute Some CQL</h3>
             <div class="form-group">
               <label for="comment">CQL Query:</label>
@@ -135,9 +142,27 @@
               <span class="sr-only">Error:</span>
               <span id="cql-error"><span data-bind="text: VIEW.cqlErrorMsg"></span></span>
             </div>
-
             <div class="results" id="cql-results" data-bind="visible: VIEW.cqlItems().length > 0">
               <h4>Results</h4>
+<!--
+
+              <hr />
+
+              <table class="table table-striped">
+                <thead>
+                  <tr data-bind="foreach: {data: VIEW.cqlRS.cols, as: 'cName'}">
+                    <th> <span data-bind="text: cName"></span> </th>
+                  </tr>
+                </thead>
+                <tbody data-bind="foreach: VIEW.cqlRS.rows">
+                  <tr data-bind="foreach: $parent.cols">
+                    <td data-bind="text: $parent[$data]"></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <hr />
+//-->
               <table class="table table-striped">
                 <thead>
                   <tr data-bind="foreach: {data: VIEW.cqlColumnNames, as: 'cName'}">
@@ -150,9 +175,12 @@
                   </tr>
                 </tbody>
               </table>
+
             </div>
           </div>
-          <div class="col-md-3">
+
+          <!-- side bar //-->
+          <div class="col-md-4">
             <div class="panel-group" id="sidebar-meta-panel"  data-bind="foreach: {data: VIEW.META, as: 'keyspace'}">
               <h4 data-bind="text: keyspace.name"></h4>
               <div class="panel panel-info" data-bind="foreach: { data: keyspace.tables, as: 'table' }">
@@ -164,9 +192,9 @@
                 </div>
                 <ul class="list-group panel-collapse collapse" data-bind="attr: { id: 'side_' + table.name}, foreach: { data: table.columns, as: 'column' }">
                   <li class="list-group-item column-listing">
-                    <span class="col-name" data-bind="text: column.name">year_month</span>
-                    <span class="col-type" data-bind="text: column.type">>Timestamp</span>
-                    <span class="col-kind" data-bind="text: column.kind">K</span>
+                    <span class="col-name" data-bind="text: column.name"></span>
+                    <span class="col-type" data-bind="text: column.type">></span>
+                    <span class="col-kind" data-bind="text: column.kind"></span>
                   </li>
                 </ul>
             </div>
@@ -190,12 +218,12 @@
           <button type="button" class="btn btn-success" id="select-star-button">
             <span class="glyphicon glyphicon-list" aria-hidden="true"></span> Select *
           </button>
-          <button type="button" class="btn btn-danger">
+          <button type="button" class="btn btn-danger" id="truncate-button">
             <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Truncate
           </button>
         </div>
 
-        <div class="results" id="cql-results">
+        <div class="results" id="table-results">
           <h4>Results</h4>
           <div data-bind="foreach: {data: VIEW.selectStarResults, as: 'table'}">
             <h3 data-bind="text: table.name"></h3>
@@ -238,7 +266,6 @@
             </div>
           </div>
         </div>
-
       </div>
       <!-- ================================== OTHER TAB here ==================================  -->
       <div id="tab-other">
@@ -271,6 +298,7 @@
       // globals for knockout js
       var VIEW = {
           META: ko.observableArray([]),
+          //cqlRS: ko.observable(),
           cqlItems: ko.observableArray(),
           cqlError: ko.observable(false),
           cqlErrorMsg: ko.observable('some error'),
@@ -339,12 +367,29 @@
                 VIEW.cqlItems.push(row);
               }
 
+              // new implementation, doesnt work :(
+              //VIEW.cqlRS = new CQLResultSet(data);
+
             }
 
           });
         });
 
       }
+
+      /* result set for cql tab
+      function CQLResultSet(results) {
+        this.rows = results;
+        this.cols = [];
+        if (results.length > 0) {
+          var first = results[0];
+          for (var key in first) {
+            if (first.hasOwnProperty(key)) {
+              this.cols.push(key);
+            }
+          }          
+        }
+      }*/
 
       // object used for Table Tab's results
       function TableDump(nameIn) {
@@ -363,20 +408,28 @@
         };
       }
 
+      // set up the buttons on the table tab
       function initTableTab() {
         $('#select-star-button').click(function() {
+          // TODO use two way binding on these checkboxes
           var tableList = $('.table-selector-checkbox:checked').map(function(_, el) { return $(el).val(); }).get();
           selectStar(tableList);
         });
+        $('#truncate-button').click(function() {
+          var tableList = $('.table-selector-checkbox:checked').map(function(_, el) { return $(el).val(); }).get();
+          truncateStar(tableList);
+        });        
       }
 
-      function selectStar(tableList) {
-        
+      // perform many api calls in parallel 
+      // TODO (selectStar and truncateStar are very similar) how can we re-use code here?
+      function truncateStar(tableList) {
+        VIEW.selectStarResults.removeAll();
         $(tableList).each(function() {
           var tableName = this;
-          var cqlQuery = "SELECT * FROM " + tableName + ";"
+          var cqlQuery = "TRUNCATE " + tableName + ";"
           $.getJSON("/api/cql?query=" + cqlQuery, function(data) {
-            console.log(tableName + ": " + data);
+            //console.log(tableName + ": " + data);
 
             var td = new TableDump(tableName);
             if (data.length > 0){
@@ -391,6 +444,29 @@
         });
       }
 
+      // perform many select api calls in parallel
+      function selectStar(tableList) {
+        VIEW.selectStarResults.removeAll();
+        $(tableList).each(function() {
+          var tableName = this;
+          var cqlQuery = "SELECT * FROM " + tableName + ";"
+          $.getJSON("/api/cql?query=" + cqlQuery, function(data) {
+            //console.log(tableName + ": " + data);
+
+            var td = new TableDump(tableName);
+            if (data.length > 0){
+              td.rows = data;
+            } else {
+              td.rows = [{"result": "no rows"}];
+            }
+
+            VIEW.selectStarResults.push(td);
+
+          });
+        });
+      }
+
+      // Get the metadata from the api
       function loadMeta() {
           $.getJSON( "/api/meta", function( data ) {
             console.log(data);
@@ -398,6 +474,7 @@
           });
       }
 
+      // push the meta to the view
       function displayMeta(metaResult) {
           //console.log(metaResult);
 
@@ -437,6 +514,7 @@
                   colList.push(column)
                 }
                 //console.log(colList);
+                // TODO fix this sort so regular columns appear at the end
                 colList.sort(function(a, b){
                     return -a.kind.localeCompare(b.kind);
                 });

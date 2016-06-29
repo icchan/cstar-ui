@@ -31,6 +31,14 @@ func cqlHandler(w http.ResponseWriter, r *http.Request, s *gocql.Session) {
 	}
 }
 
+func metaHandler(w http.ResponseWriter, r *http.Request, session *gocql.Session, protoVersion int) {
+  if (protoVersion == 3) {
+    metaHandlerV3(w, r, session)
+  } else {
+    metaHandlerV4(w, r, session)
+  }
+}
+
 func metaHandlerV3(w http.ResponseWriter, r *http.Request, s *gocql.Session) {
   res, err := s.Query("select keyspace_name, columnfamily_name, column_name, type, validator from system.schema_columns").Iter().SliceMap()
 
@@ -94,7 +102,7 @@ func metaHandlerV4(w http.ResponseWriter, r *http.Request, s *gocql.Session) {
 			columnType := row["type"].(string)
 			columnKind := row["kind"].(string)
 
-			if !strings.HasPrefix(keyspaceName, "system") {		
+			if (!strings.HasPrefix(keyspaceName, "system") && !strings.HasPrefix(keyspaceName, "dse_") ){ 		
 				// initialize keyspace map if required
 				if keyspaces[keyspaceName] == nil {
 					keyspaces[keyspaceName] = make(map[string]map[string]map[string]string)
@@ -118,15 +126,17 @@ func main() {
 
 	hostPtr := flag.String("host", "127.0.0.1", "cassandra host")
 	listenPtr := flag.String("listen", ":8080", "listen address:port")
+  protoPtr := flag.Int("proto", 4, "cql protocol version")
 	flag.Parse()
 
 	cassandra := *hostPtr
 	listenPort := *listenPtr
+  protoVersion := *protoPtr
 
     // connect to the cluster
 	cluster := gocql.NewCluster(cassandra)
 	cluster.Consistency = gocql.One
-	cluster.ProtoVersion = 3
+	cluster.ProtoVersion = protoVersion
 	session, _ := cluster.CreateSession()
 	defer session.Close()
 
@@ -141,7 +151,7 @@ func main() {
 
 	// get info about keyspaces, tables, columns
 	http.HandleFunc("/api/meta", func(w http.ResponseWriter, r *http.Request) {
-		metaHandlerV3(w, r, session)
+		metaHandler(w, r, session, protoVersion)
 		})
 
 	// serve the html page
