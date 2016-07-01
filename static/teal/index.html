@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="favicon.ico">
+
+    <title>Cassandra Quick Access</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/flatly/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome! -->
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+      <![endif]-->
+      <style>
+        body {
+          padding-top: 60px;
+        }
+        #main {
+          margin-bottom: 200px;
+        }
+
+        /* Meta display */
+        li.meta-columns span {
+          display: inline-block;
+        }
+        li.meta-columns span.cql-col {
+          width: 150px;
+        }
+        li.meta-columns span.cql-type {
+          width: 120px;
+        }
+        li.meta-columns span.cql-kind {
+          width: 10px;
+        }
+
+        /* CQL tab results */
+        .alert {
+            margin-top: 10px;
+        }
+
+        /* query results (cql and table) */
+        div.results {
+            overflow: auto;
+        }
+        div.results tr > td {
+          padding: 2px 8px;
+          font-size: 90%;
+        }
+
+        /* CQL Tab's Schema Side Menu*/
+        .panel-heading {
+            padding: 5px 8px;
+        }
+        .panel-title > a {
+          font-family: courier;
+          color: #ccc;
+          text-decoration: none;
+          font-size: 80%;
+        }
+        #sidebar-meta-panel a > span.plus {
+          display: none;
+        }
+        #sidebar-meta-panel a.collapsed > span.minus {
+          display: none;
+        }
+        #sidebar-meta-panel a > span.minus {
+          display: inline;
+        }
+        #sidebar-meta-panel a.collapsed > span.plus {
+          display: inline;
+        }
+        .panel>.list-group .list-group-item {
+            font-size: 90%;
+            padding: 4px 0px 0px 15px;
+        }
+        li.column-listing > span {
+            border: 0px solid #aaa;
+            display: inline-block;
+            width: 50px;
+            overflow: auto;
+            white-space: nowrap;
+        }
+        li.column-listing > span.col-name {
+            width: 110px;
+        }
+        li.column-listing > span.col-type {
+            width: 80px;
+        }
+        li.column-listing > span.col-kind {
+            width: 20px;
+        }
+
+        /* Table tab*/
+        div.table-selector label {
+          display: inline-block;
+          width: 250px;
+        }
+
+      </style>
+  </head>
+  <body>
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="https://github.com/icchan/cstar-ui" target="_blank">CStar UI</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav" id="topmenu">
+            <li><a href="#tab-cql">CQL</a></li>
+            <li><a href="#tab-tables">Tables</a></li>
+            <li><a href="#tab-meta">Metadata</a></li>
+            <li><a href="#tab-other">Other</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+
+    <div class="container" id="main">
+      <!-- ================================== CQL TAB here ==================================  -->
+        <div id="tab-cql">
+          <div class="col-md-8">
+            <h3>Let's Execute Some CQL</h3>
+            <div class="form-group">
+              <label for="comment">CQL Query:</label>
+              <textarea class="form-control" rows="4" id="textarea-cql">SELECT * FROM testme.users;</textarea>
+            </div>
+
+            <div class="btn-toolbar">
+              <button type="button" class="btn btn-success" id="btn-cql">
+                <span class="glyphicon glyphicon-play" aria-hidden="true"></span> Run Query
+              </button>
+            </div>
+
+            <div class="alert alert-danger" role="alert" data-bind="visible: VIEW.cqlError">
+              <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+              <span class="sr-only">Error:</span>
+              <span id="cql-error"><span data-bind="text: VIEW.cqlErrorMsg"></span></span>
+            </div>
+            <div class="results" id="cql-results" data-bind="visible: VIEW.cqlItems().length > 0">
+              <h4>Results</h4>
+<!--
+
+              <hr />
+
+              <table class="table table-striped">
+                <thead>
+                  <tr data-bind="foreach: {data: VIEW.cqlRS.cols, as: 'cName'}">
+                    <th> <span data-bind="text: cName"></span> </th>
+                  </tr>
+                </thead>
+                <tbody data-bind="foreach: VIEW.cqlRS.rows">
+                  <tr data-bind="foreach: $parent.cols">
+                    <td data-bind="text: $parent[$data]"></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <hr />
+//-->
+              <table class="table table-striped">
+                <thead>
+                  <tr data-bind="foreach: {data: VIEW.cqlColumnNames, as: 'cName'}">
+                    <th> <span data-bind="text: cName"></span> </th>
+                  </tr>
+                </thead>
+                <tbody data-bind="foreach: VIEW.cqlItems">
+                  <tr data-bind="foreach: $parent.cqlColumnNames">
+                      <td data-bind="text: $parent[$data]"></td>
+                  </tr>
+                </tbody>
+              </table>
+
+            </div>
+          </div>
+
+          <!-- side bar //-->
+          <div class="col-md-4">
+            <div class="panel-group" id="sidebar-meta-panel"  data-bind="foreach: {data: VIEW.META, as: 'keyspace'}">
+              <h4 data-bind="text: keyspace.name"></h4>
+              <div class="panel panel-info" data-bind="foreach: { data: keyspace.tables, as: 'table' }">
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    <span data-bind="text: table.name"></span>
+                    <a data-toggle="collapse" class="collapsed" data-bind="attr: { href: '#side_' + table.name}">[<span class="minus">-</span><span class="plus">+</span>]</a>
+                  </h4>
+                </div>
+                <ul class="list-group panel-collapse collapse" data-bind="attr: { id: 'side_' + table.name}, foreach: { data: table.columns, as: 'column' }">
+                  <li class="list-group-item column-listing">
+                    <span class="col-name" data-bind="text: column.name"></span>
+                    <span class="col-type" data-bind="text: column.type">></span>
+                    <span class="col-kind" data-bind="text: column.kind"></span>
+                  </li>
+                </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ================================== TABLES TAB here ==================================  -->
+      <div id="tab-tables">
+        <h3>Let's Work With Tables</h3>
+        <div class="checkbox">
+          <div id="meta-display">
+            <div data-bind="foreach: {data: VIEW.META, as: 'keyspace'}">
+              <h4>Keyspace: <span data-bind="text: keyspace.name"></span></h4>
+              <div data-bind="foreach: { data: keyspace.tables, as: 'table' }" class="table-selector well">
+                <label><input type="checkbox" class="table-selector-checkbox" data-bind="value: keyspace.name + '.' + table.name" ><span data-bind="text: table.name"></span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="btn-toolbar">
+          <button type="button" class="btn btn-success" id="select-star-button">
+            <span class="glyphicon glyphicon-list" aria-hidden="true"></span> Select *
+          </button>
+          <button type="button" class="btn btn-danger" id="truncate-button">
+            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Truncate
+          </button>
+        </div>
+
+        <div class="results" id="table-results">
+          <h4>Results</h4>
+          <div data-bind="foreach: {data: VIEW.selectStarResults, as: 'table'}">
+            <h3 data-bind="text: table.name"></h3>
+            <table class="table table-striped">
+              <thead>
+                <tr data-bind="foreach: {data: table.columns(), as: 'cName'}">
+                  <th> <span data-bind="text: cName"></span> </th>
+                </tr>
+              </thead>
+              <tbody data-bind="foreach: table.rows">
+                <tr data-bind="foreach: $parent.columns()">
+                  <td data-bind="text: $parent[$data]"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- ================================== META TAB here ==================================  -->
+      <div id="tab-meta">
+        <h3>Metadata</h3>
+        <p>What the db looks like</p>
+
+        <div id="meta-display">
+          <div class="panel panel-warning keyspace-meta" data-bind="foreach: {data: VIEW.META, as: 'keyspace'}">
+            <div class="panel-heading"><span data-bind="text: keyspace.name"></span> <span class="tbl-collapse">[-]</span></div>
+            <div class="table-meta panel-body">
+              <ul class="list-group" data-bind="foreach: { data: keyspace.tables, as: 'table' }">
+                <li class="list-group-item">
+                  <h4><span data-bind="text: table.name"></span> <small>[-]</small></h4>
+                  <ul class="list-group" data-bind="foreach: { data: table.columns, as: 'column' }">
+                    <li class="list-group-item meta-columns">
+                      <b><span class="cql-col"  data-bind="text: column.name"></span></b>
+                      <span class="cql-type" data-bind="text: column.type"></span> 
+                      <span class="cql-kind"  data-bind="text: column.kind"></span>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ================================== OTHER TAB here ==================================  -->
+      <div id="tab-other">
+        <h3>Other..</h3>
+        <p>Some other stuff I haven't thought of yet..</p>
+      </div>
+
+    </div><!-- /.container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.0/knockout-min.js"></script>
+
+    <script>
+      $(function() {
+        // set up top menu and tabs
+        initTabMenu();
+
+        // Actual app code
+        initCqlTab();
+        loadMeta();
+
+        initTableTab();
+      });
+
+      // globals for knockout js
+      var VIEW = {
+          META: ko.observableArray([]),
+          //cqlRS: ko.observable(),
+          cqlItems: ko.observableArray(),
+          cqlError: ko.observable(false),
+          cqlErrorMsg: ko.observable('some error'),
+          selectStarResults: ko.observableArray([])
+      }
+
+      VIEW.cqlColumnNames = ko.computed(function () {
+              var self = VIEW;
+              if (self.cqlItems().length === 0)
+                  return [];
+              var props = [];
+              var obj = self.cqlItems()[0];
+              for (var name in obj)
+                  props.push(name);
+              return props;
+          });
+
+      ko.applyBindings(VIEW);
+
+
+      // functions
+      function initTabMenu() {
+        // set up the tabs
+        $("#main").children().hide();
+        var type = window.location.hash.substr(1);
+
+        if (type == "") {
+          type = "tab-cql";
+        }
+        $("#" + type).show();
+
+        // set up the menu
+        $("#topmenu > li > a").click(function(){
+          var thisref = $(this).attr('href');
+          console.log(thisref);
+          $("#main").children().hide();
+          $(thisref).show();
+        });
+      }
+
+      function initCqlTab(){
+        $('#btn-cql').click(function() {
+          VIEW.cqlError(false);
+
+          var query = $('#textarea-cql').val();
+          // TODO validate it
+
+          console.log(query);
+
+          $.getJSON( "/api/cql?query=" + query, function( data ) {
+            console.log(data);
+
+            // TODO validate
+            if (data.status != null) {
+              console.log("CQL failed");
+              VIEW.cqlError(true);
+              VIEW.cqlErrorMsg(data.message);
+              console.log(data.message);
+            } else {
+
+              VIEW.cqlItems.removeAll();
+
+              var arrayLength = data.length;
+              for (var i = 0; i < arrayLength; i++) {
+                var row = data[i];
+                VIEW.cqlItems.push(row);
+              }
+
+              // new implementation, doesnt work :(
+              //VIEW.cqlRS = new CQLResultSet(data);
+
+            }
+
+          });
+        });
+
+      }
+
+      /* result set for cql tab
+      function CQLResultSet(results) {
+        this.rows = results;
+        this.cols = [];
+        if (results.length > 0) {
+          var first = results[0];
+          for (var key in first) {
+            if (first.hasOwnProperty(key)) {
+              this.cols.push(key);
+            }
+          }          
+        }
+      }*/
+
+      // object used for Table Tab's results
+      function TableDump(nameIn) {
+        this.name = nameIn;
+        this.rows = [];
+        this.columns = function() {
+          if (this.rows.length == 0) return [];
+          var first = this.rows[0];
+          var colNames = [];
+          for (var key in first) {
+            if (first.hasOwnProperty(key)) {
+              colNames.push(key);
+            }
+          }
+          return colNames;
+        };
+      }
+
+      // set up the buttons on the table tab
+      function initTableTab() {
+        $('#select-star-button').click(function() {
+          // TODO use two way binding on these checkboxes
+          var tableList = $('.table-selector-checkbox:checked').map(function(_, el) { return $(el).val(); }).get();
+          selectStar(tableList);
+        });
+        $('#truncate-button').click(function() {
+          var tableList = $('.table-selector-checkbox:checked').map(function(_, el) { return $(el).val(); }).get();
+          truncateStar(tableList);
+        });        
+      }
+
+      // perform many api calls in parallel 
+      // TODO (selectStar and truncateStar are very similar) how can we re-use code here?
+      function truncateStar(tableList) {
+        VIEW.selectStarResults.removeAll();
+        $(tableList).each(function() {
+          var tableName = this;
+          var cqlQuery = "TRUNCATE " + tableName + ";"
+          $.getJSON("/api/cql?query=" + cqlQuery, function(data) {
+            //console.log(tableName + ": " + data);
+
+            var td = new TableDump(tableName);
+            if (data.length > 0){
+              td.rows = data;
+            } else {
+              td.rows = [{"result": "no rows"}];
+            }
+
+            VIEW.selectStarResults.push(td);
+
+          });
+        });
+      }
+
+      // perform many select api calls in parallel
+      function selectStar(tableList) {
+        VIEW.selectStarResults.removeAll();
+        $(tableList).each(function() {
+          var tableName = this;
+          var cqlQuery = "SELECT * FROM " + tableName + ";"
+          $.getJSON("/api/cql?query=" + cqlQuery, function(data) {
+            //console.log(tableName + ": " + data);
+
+            var td = new TableDump(tableName);
+            if (data.length > 0){
+              td.rows = data;
+            } else {
+              td.rows = [{"result": "no rows"}];
+            }
+
+            VIEW.selectStarResults.push(td);
+
+          });
+        });
+      }
+
+      // Get the metadata from the api
+      function loadMeta() {
+          $.getJSON( "/api/meta", function( data ) {
+            console.log(data);
+            displayMeta(data);
+          });
+      }
+
+      // push the meta to the view
+      function displayMeta(metaResult) {
+          //console.log(metaResult);
+
+          // TODO ensure the input is valid before continuing
+          VIEW.META.removeAll();
+
+          // extract keyspaces
+          for (var ksName in metaResult) {
+            if (metaResult.hasOwnProperty(ksName)) {
+
+              var tblRes = metaResult[ksName];
+              var tblList = [];
+
+              // extract tables
+              for (var tblName in tblRes) {
+                var colRes = tblRes[tblName];
+                var colList = [];
+
+                // extract column data
+                for (var colName in colRes) {
+                  var colMeta = colRes[colName];
+
+                  var dKind = "";
+                  if (colMeta.kind =="partition_key" ) {
+                    dKind = "K";
+                  } else if (colMeta.kind =="clustering" ) {
+                    dKind = "C";
+                  } else if (colMeta.kind =="static" ) {
+                    dKind = "S";
+                  }
+
+                  var column = {
+                    "name": colName,
+                    "type": colMeta.type,
+                    "kind": dKind
+                  }
+                  colList.push(column)
+                }
+                //console.log(colList);
+                // TODO fix this sort so regular columns appear at the end
+                colList.sort(function(a, b){
+                    return -a.kind.localeCompare(b.kind);
+                });
+
+                var table = {
+                  "name": tblName,
+                  "columns": colList
+                }
+
+                tblList.push(table);
+              }
+
+              var keyspace = {
+                "name" : ksName,
+                "tables" : tblList
+              };
+
+              VIEW.META.push(keyspace);
+            }
+          }
+
+        }
+
+    </script>
+
+  </body>
+</html>
