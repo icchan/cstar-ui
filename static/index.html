@@ -152,8 +152,13 @@
         </div>
         <!-- ================================== META TAB here ==================================  -->
         <div id="tab-meta">
-          <h3>Metadata</h3>
-          <p>What the db looks like</p>
+          <div>
+            <h3>Metadata
+            <button type="button" class="btn btn-default btn-xs" aria-label="Left Align" id="btn-meta-refresh">
+              <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span> Refresh
+            </button>
+            </h3>
+          </div>
 
           <div id="meta-display">
             <div class="panel panel-warning keyspace-meta" data-bind="foreach: {data: VIEW.META, as: 'keyspace'}">
@@ -193,22 +198,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.0/knockout-min.js"></script>
 
     <script>
+      // Start up scripts
       $(function() {
-
-        $('.panel-heading').click(function() {
-          $(this).next('.panel-body').toggle();
-          console.log($(this));
-        });
-
-//        $(".alert").hide();
-//        $(".results").hide();
-
         // set up top menu and tabs
         initTabMenu();
 
         // Actual app code
         initCqlTab();
         loadMeta();
+        initMetaRefresh();
       });
 
       // globals for knockout js
@@ -231,6 +229,7 @@
           });
 
       ko.applyBindings(VIEW);
+
 
 
       // functions
@@ -262,6 +261,7 @@
 
           console.log(query);
 
+          // execute the query
           $.getJSON( "/api/cql?query=" + query, function( data ) {
             console.log(data);
 
@@ -287,7 +287,6 @@
         });
 
       }
-
 
       function loadMeta() {
           $.getJSON( "/api/meta", function( data ) {
@@ -363,6 +362,11 @@
 
         }
 
+        function initMetaRefresh() {
+          $('#btn-meta-refresh').click(function(){
+            loadMeta();
+          });
+        }
     </script>
 
   </body>
