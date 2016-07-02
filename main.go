@@ -31,7 +31,59 @@ func cqlHandler(w http.ResponseWriter, r *http.Request, s *gocql.Session) {
 	}
 }
 
-func metaHandler(w http.ResponseWriter, r *http.Request, s *gocql.Session) {
+func metaHandler(w http.ResponseWriter, r *http.Request, session *gocql.Session, protoVersion int) {
+  if (protoVersion == 3) {
+    metaHandlerV3(w, r, session)
+  } else {
+    metaHandlerV4(w, r, session)
+  }
+}
+
+func metaHandlerV3(w http.ResponseWriter, r *http.Request, s *gocql.Session) {
+  res, err := s.Query("select keyspace_name, columnfamily_name, column_name, type, validator from system.schema_columns").Iter().SliceMap()
+
+  enc := json.NewEncoder(w)
+  if (err != nil) {
+    enc.Encode(err) 
+  } else {
+    // TODO make this more OO (use objects not maps)
+
+    // init keyspace map
+    keyspaces := make(map[string]map[string]map[string]map[string]string)
+
+    for _, row := range res {
+      keyspaceName := row["keyspace_name"].(string)
+      tableName := row["columnfamily_name"].(string)
+      columnName := row["column_name"].(string)
+      columnTypeRaw := row["validator"].(string)
+      columnKind := row["type"].(string)
+
+      //columnType := columnTypeRaw[32:len(columnTypeRaw)-4]
+
+      columnType1 := strings.Replace(columnTypeRaw, "org.apache.cassandra.db.marshal.", "", -1)
+      columnType := strings.Replace(columnType1, "Type", "", -1)
+
+      if (!strings.HasPrefix(keyspaceName, "system") && !strings.HasPrefix(keyspaceName, "dse_") ){   
+        // initialize keyspace map if required
+        if keyspaces[keyspaceName] == nil {
+          keyspaces[keyspaceName] = make(map[string]map[string]map[string]string)
+        } 
+
+        // initialise table map if required
+        if keyspaces[keyspaceName][tableName] == nil {
+          keyspaces[keyspaceName][tableName] = make(map[string]map[string]string)
+        } 
+
+        keyspaces[keyspaceName][tableName][columnName] = make(map[string]string)
+        keyspaces[keyspaceName][tableName][columnName]["type"] = columnType
+        keyspaces[keyspaceName][tableName][columnName]["kind"] = columnKind
+      }
+    }
+    enc.Encode(keyspaces)
+  }  
+}
+
+func metaHandlerV4(w http.ResponseWriter, r *http.Request, s *gocql.Session) {
 	res, err := s.Query("SELECT keyspace_name, table_name, column_name, kind, type FROM system_schema.columns").Iter().SliceMap()
 
 	enc := json.NewEncoder(w)
@@ -50,7 +102,7 @@ func metaHandler(w http.ResponseWriter, r *http.Request, s *gocql.Session) {
 			columnType := row["type"].(string)
 			columnKind := row["kind"].(string)
 
-			if !strings.HasPrefix(keyspaceName, "system") {		
+			if (!strings.HasPrefix(keyspaceName, "system") && !strings.HasPrefix(keyspaceName, "dse_") ){ 		
 				// initialize keyspace map if required
 				if keyspaces[keyspaceName] == nil {
 					keyspaces[keyspaceName] = make(map[string]map[string]map[string]string)
@@ -74,21 +126,23 @@ func main() {
 
 	hostPtr := flag.String("host", "127.0.0.1", "cassandra host")
 	listenPtr := flag.String("listen", ":8080", "listen address:port")
+  protoPtr := flag.Int("proto", 4, "cql protocol version")
 	flag.Parse()
 
 	cassandra := *hostPtr
 	listenPort := *listenPtr
+  protoVersion := *protoPtr
 
     // connect to the cluster
 	cluster := gocql.NewCluster(cassandra)
 	cluster.Consistency = gocql.One
-	cluster.ProtoVersion = 4
+	cluster.ProtoVersion = protoVersion
 	session, _ := cluster.CreateSession()
 	defer session.Close()
 
 	// static content
 	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	http.Handle("/web/", http.StripPrefix("/web/", fs))
 
 	// execute cql
 	http.HandleFunc("/api/cql", func(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +151,7 @@ func main() {
 
 	// get info about keyspaces, tables, columns
 	http.HandleFunc("/api/meta", func(w http.ResponseWriter, r *http.Request) {
-		metaHandler(w, r, session)
+		metaHandler(w, r, session, protoVersion)
 		})
 
 	// serve the html page
@@ -107,7 +161,9 @@ func main() {
 
 	fmt.Println("listening on " + listenPort)
 	fmt.Println("connected to cassandra at " + cassandra)
-	http.ListenAndServe(listenPort, nil)
+	err := http.ListenAndServe(listenPort, nil)
+
+  fmt.Printf("should not occur error: %v\n", err);
 }
 
 
@@ -126,16 +182,6 @@ const frontend string = `
 
   <!-- Bootstrap CSS -->
   <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/flatly/bootstrap.min.css" rel="stylesheet">
-
-    <!--
-    // Select one of these: 
-  <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/flatly/bootstrap.min.css" rel="stylesheet">
-  <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/slate/bootstrap.min.css" rel="stylesheet">
-  <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/superhero/bootstrap.min.css" rel="stylesheet">
-  <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/darkly/bootstrap.min.css" rel="stylesheet">
-  <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/lumen/bootstrap.min.css" rel="stylesheet">
-
--->
 
 <!-- Font Awesome! -->
 <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
@@ -156,7 +202,7 @@ const frontend string = `
           width: 150px;
         }
         li.meta-columns span.cql-type {
-          width: 50px;
+          width: 150px;
         }
         li.meta-columns span.cql-kind {
           width: 10px;
@@ -435,7 +481,7 @@ const frontend string = `
                   var dKind = "";
                   if (colMeta.kind =="partition_key" ) {
                     dKind = "K";
-                  } else if (colMeta.kind =="clustering" ) {
+                  } else if ((colMeta.kind =="clustering" ) || (colMeta.kind =="clustering_key" ) ){
                     dKind = "C";
                   } else if (colMeta.kind =="static" ) {
                     dKind = "S";
